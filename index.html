@@ -158,6 +158,12 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
       <div class="sw"><select id="sel-pv"><option value="">-- Selecciona primero tu nombre --</option></select></div>
       <div class="em" id="e-pv">⚠️ Selecciona el punto de venta</div>
     </div>
+    <div class="fg">
+      <label>Sucursal <span class="req">*</span></label>
+      <input type="text" id="inp-suc" placeholder="Ej: 001, Norte, Principal..." autocomplete="off" maxlength="50">
+      <div style="font-size:11px;color:var(--muted);margin-top:5px">Escribe el número o nombre de la sucursal</div>
+      <div class="em" id="e-suc">⚠️ Ingresa la sucursal</div>
+    </div>
   </div>
 
   <!-- PRODUCTO — cascada de 4 niveles -->
@@ -182,25 +188,11 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
       <div class="em" id="e-marca">⚠️ Selecciona una marca</div>
     </div>
 
-    <div class="fg">
-      <label>Tamaño / Gramaje <span class="req">*</span></label>
-      <div class="sw"><select id="sel-tam" disabled onchange="onTam()"><option value="">-- Primero selecciona marca --</option></select></div>
-      <div class="em" id="e-tam">⚠️ Selecciona el tamaño</div>
-    </div>
-
-    <div class="fg">
-      <label>Producto <span class="req">*</span></label>
-      <div class="sw"><select id="sel-prod" disabled onchange="onProd()"><option value="">-- Primero selecciona tamaño --</option></select></div>
-      <div class="em" id="e-prod">⚠️ Selecciona el producto</div>
-    </div>
-
-    <!-- Resumen del producto seleccionado -->
+    <!-- Resumen de marca seleccionada -->
     <div class="prod-resumen" id="prod-resumen">
-      <div class="prod-resumen-titulo">✅ Producto seleccionado</div>
+      <div class="prod-resumen-titulo">✅ Marca seleccionada</div>
       <div class="prod-resumen-cod" id="prod-cod"></div>
-      <div class="prod-resumen-nom" id="prod-nom"></div>
     </div>
-    <div class="em" id="e-ref">⚠️ Completa todos los campos del producto</div>
   </div>
 
   <!-- CALCULADORA -->
@@ -236,20 +228,24 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   <!-- PLANIMETRÍA -->
   <div class="card">
     <div class="ct"><span class="ico">📊</span> Datos de Planimetría</div>
+    <div class="hint">Registra el <strong>total de la marca completa</strong> en el lineal — sin diferenciar gramajes ni productos.</div>
     <div class="fg">
       <label>Caras en el Lineal <span class="req">*</span></label>
       <input type="number" id="inp-caras" placeholder="Ej: 3" min="0" step="1">
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Total de caras de toda la marca en el lineal</div>
       <div class="em" id="e-caras">⚠️ Ingresa la cantidad de caras</div>
-    </div>
-    <div class="fg">
-      <label>Cantidad Total <span class="req">*</span></label>
-      <input type="number" id="inp-cant" placeholder="Ej: 12" min="0" step="1">
-      <div class="em" id="e-cant">⚠️ Ingresa la cantidad total</div>
     </div>
     <div class="fg">
       <label>Centímetros en el Lineal <span class="req">*</span></label>
       <input type="number" id="inp-cm" placeholder="Ej: 45.5" min="0" step="0.1">
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Total de cm lineales ocupados por toda la marca</div>
       <div class="em" id="e-cm">⚠️ Ingresa los centímetros</div>
+    </div>
+    <div class="fg">
+      <label>Cantidad Total de Unidades <span class="req">*</span></label>
+      <input type="number" id="inp-cant" placeholder="Ej: 24" min="0" step="1">
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Total de unidades disponibles de toda la marca (todos los productos y gramajes)</div>
+      <div class="em" id="e-cant">⚠️ Ingresa la cantidad total</div>
     </div>
     <div class="fg">
       <label>Observaciones <span class="opt">(Opcional)</span></label>
@@ -408,7 +404,7 @@ function pobCats(){
 function onCat(){
   var cat=document.getElementById('sel-cat').value;
   clrE('e-cat'); document.getElementById('sel-cat').classList.remove('fe');
-  resetDesde('lin'); resetDesde('marca'); resetDesde('tam'); resetDesde('prod'); limpiarResumen();
+  resetDesde('lin'); resetDesde('marca'); limpiarResumen();
 
   var sl=document.getElementById('sel-lin');
   sl.innerHTML='<option value="">-- Selecciona línea --</option>'; sl.disabled=!cat;
@@ -421,7 +417,7 @@ function onLin(){
   var cat=document.getElementById('sel-cat').value;
   var lin=document.getElementById('sel-lin').value;
   clrE('e-lin'); document.getElementById('sel-lin').classList.remove('fe');
-  resetDesde('marca'); resetDesde('tam'); resetDesde('prod'); limpiarResumen();
+  resetDesde('marca'); limpiarResumen();
 
   var sm=document.getElementById('sel-marca');
   sm.innerHTML='<option value="">-- Selecciona marca --</option>'; sm.disabled=!lin;
@@ -435,56 +431,15 @@ function onMarca(){
   var lin=document.getElementById('sel-lin').value;
   var marca=document.getElementById('sel-marca').value;
   clrE('e-marca'); document.getElementById('sel-marca').classList.remove('fe');
-  resetDesde('tam'); resetDesde('prod'); limpiarResumen();
-
-  var st=document.getElementById('sel-tam');
-  st.innerHTML='<option value="">-- Selecciona tamaño --</option>'; st.disabled=!marca;
-  if(!marca)return;
-  var tams=[...new Set(appData.productos.filter(function(p){ return p.categoria===cat&&p.linea===lin&&p.marca===marca; }).map(function(p){ return p.tamanio; }))];
-  tams.sort(function(a,b){
-    var na=parseFloat(a), nb=parseFloat(b);
-    return (!isNaN(na)&&!isNaN(nb))?(na-nb):a.localeCompare(b);
-  });
-  tams.forEach(function(t){ var o=document.createElement('option'); o.value=t; o.textContent=t; st.appendChild(o); });
-  if(tams.length===1){ st.value=tams[0]; onTam(); }
-}
-
-function onTam(){
-  var cat=document.getElementById('sel-cat').value;
-  var lin=document.getElementById('sel-lin').value;
-  var marca=document.getElementById('sel-marca').value;
-  var tam=document.getElementById('sel-tam').value;
-  clrE('e-tam'); document.getElementById('sel-tam').classList.remove('fe');
-  resetDesde('prod'); limpiarResumen();
-
-  var sp=document.getElementById('sel-prod');
-  sp.innerHTML='<option value="">-- Selecciona producto --</option>'; sp.disabled=!tam;
-  if(!tam)return;
-
-  var prods=appData.productos.filter(function(p){
-    return p.categoria===cat&&p.linea===lin&&p.marca===marca&&p.tamanio===tam;
-  });
-  prods.forEach(function(p){
-    var o=document.createElement('option');
-    o.value=p.cod;
-    o.textContent=p.producto;
-    sp.appendChild(o);
-  });
-  // Si solo hay uno, seleccionar automáticamente
-  if(prods.length===1){ sp.value=prods[0].cod; onProd(); }
-}
-
-function onProd(){
-  var cod=document.getElementById('sel-prod').value;
-  clrE('e-prod'); document.getElementById('sel-prod').classList.remove('fe');
   limpiarResumen(); selRef=null;
-  if(!cod)return;
-
-  var prod=appData.productos.find(function(p){ return p.cod===cod; });
+  if(!marca) return;
+  // Buscar el primer producto que coincida con cat+lin+marca para tener el cod de referencia
+  var prod=appData.productos.find(function(p){
+    return p.categoria===cat && p.linea===lin && p.marca===marca;
+  });
   if(prod){
-    selRef=prod; clrE('e-ref');
-    document.getElementById('prod-cod').textContent=prod.cod;
-    document.getElementById('prod-nom').textContent=prod.producto;
+    selRef={ cod: prod.cod, categoria: cat, linea: lin, marca: marca, producto: marca };
+    document.getElementById('prod-cod').textContent = cat + ' · ' + lin + ' · ' + marca;
     document.getElementById('prod-resumen').classList.add('on');
   }
 }
@@ -492,17 +447,15 @@ function onProd(){
 function resetDesde(campo){
   var cfg={
     'lin':  {id:'sel-lin',  ph:'-- Primero selecciona categoría --'},
-    'marca':{id:'sel-marca',ph:'-- Primero selecciona línea --'},
-    'tam':  {id:'sel-tam',  ph:'-- Primero selecciona marca --'},
-    'prod': {id:'sel-prod', ph:'-- Primero selecciona tamaño --'}
+    'marca':{id:'sel-marca',ph:'-- Primero selecciona línea --'}
   };
-  var orden=['lin','marca','tam','prod'];
+  var orden=['lin','marca'];
   var desde=orden.indexOf(campo);
   if(desde<0)return;
   for(var i=desde;i<orden.length;i++){
-    var c=cfg[orden[i]];
-    var el=document.getElementById(c.id);
-    el.innerHTML='<option value="">'+c.ph+'</option>';
+    var cf=cfg[orden[i]];
+    var el=document.getElementById(cf.id);
+    el.innerHTML='<option value="">'+cf.ph+'</option>';
     el.disabled=true;
   }
 }
@@ -511,7 +464,6 @@ function limpiarResumen(){
   selRef=null;
   document.getElementById('prod-resumen').classList.remove('on');
   document.getElementById('prod-cod').textContent='';
-  document.getElementById('prod-nom').textContent='';
 }
 
 document.addEventListener('click',function(e){
@@ -647,11 +599,11 @@ function validar(){
   }
   chk(!!selNom,'e-nom','inp-nom');
   chk(!!document.getElementById('sel-pv').value,'e-pv',null);
+  chk(!!document.getElementById('inp-suc').value.trim(),'e-suc','inp-suc');
   chk(!!document.getElementById('sel-cat').value,'e-cat','sel-cat');
   chk(!!document.getElementById('sel-lin').value,'e-lin','sel-lin');
   chk(!!document.getElementById('sel-marca').value,'e-marca','sel-marca');
-  chk(!!document.getElementById('sel-tam').value,'e-tam','sel-tam');
-  chk(!!document.getElementById('sel-prod').value,'e-prod','sel-prod');
+  chk(!!document.getElementById('sel-marca').value,'e-marca','sel-marca');
   chk(!!selRef,'e-ref',null);
   var c=document.getElementById('inp-caras').value;
   chk(c!==''&&!isNaN(c)&&Number(c)>=0,'e-caras','inp-caras');
@@ -681,14 +633,12 @@ function enviar(nuevo){
         fechaInicial:  fechaIni,
         nombre:        selNom,
         zona:          document.getElementById('sel-zona').value,
+        sucursal:      document.getElementById('inp-suc').value.trim(),
         distrito:      DISTRITO,
         puntoVenta:    document.getElementById('sel-pv').value,
         categoria:     selRef.categoria,
         linea:         selRef.linea,
         marca:         selRef.marca,
-        tamanio:       selRef.tamanio,
-        codRef:        selRef.cod,
-        producto:      selRef.producto,
         caras:         document.getElementById('inp-caras').value,
         cantidadTotal: document.getElementById('inp-cant').value,
         cmLineal:      document.getElementById('inp-cm').value,
@@ -709,8 +659,8 @@ function cancelar(){
 function resetForm(keepUser){
   if(!keepUser){ inpNom.value='';selNom='';resetNomF();inpNom.classList.remove('fe'); }
   document.getElementById('sel-cat').value='';
-  resetDesde('lin'); limpiarResumen();
-  ['inp-caras','inp-cant','inp-cm','inp-obs'].forEach(function(id){ document.getElementById(id).value=''; });
+  resetDesde('lin'); resetDesde('marca'); limpiarResumen();
+  ['inp-suc','inp-caras','inp-cant','inp-cm','inp-obs'].forEach(function(id){ document.getElementById(id).value=''; });
   delFoto({stopPropagation:function(){}});
   document.querySelectorAll('.em').forEach(function(e){ e.classList.remove('on'); });
   document.querySelectorAll('.fe').forEach(function(e){ e.classList.remove('fe'); });
