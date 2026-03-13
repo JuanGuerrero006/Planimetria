@@ -188,13 +188,19 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
       <div class="em" id="e-tam">⚠️ Selecciona el tamaño</div>
     </div>
 
+    <div class="fg">
+      <label>Producto <span class="req">*</span></label>
+      <div class="sw"><select id="sel-prod" disabled onchange="onProd()"><option value="">-- Primero selecciona tamaño --</option></select></div>
+      <div class="em" id="e-prod">⚠️ Selecciona el producto</div>
+    </div>
+
     <!-- Resumen del producto seleccionado -->
     <div class="prod-resumen" id="prod-resumen">
       <div class="prod-resumen-titulo">✅ Producto seleccionado</div>
       <div class="prod-resumen-cod" id="prod-cod"></div>
       <div class="prod-resumen-nom" id="prod-nom"></div>
     </div>
-    <div class="em" id="e-ref">⚠️ Completa categoría, línea, marca y tamaño</div>
+    <div class="em" id="e-ref">⚠️ Completa todos los campos del producto</div>
   </div>
 
   <!-- CALCULADORA -->
@@ -402,7 +408,7 @@ function pobCats(){
 function onCat(){
   var cat=document.getElementById('sel-cat').value;
   clrE('e-cat'); document.getElementById('sel-cat').classList.remove('fe');
-  resetDesde('lin'); resetDesde('marca'); resetDesde('tam'); limpiarResumen();
+  resetDesde('lin'); resetDesde('marca'); resetDesde('tam'); resetDesde('prod'); limpiarResumen();
 
   var sl=document.getElementById('sel-lin');
   sl.innerHTML='<option value="">-- Selecciona línea --</option>'; sl.disabled=!cat;
@@ -415,7 +421,7 @@ function onLin(){
   var cat=document.getElementById('sel-cat').value;
   var lin=document.getElementById('sel-lin').value;
   clrE('e-lin'); document.getElementById('sel-lin').classList.remove('fe');
-  resetDesde('marca'); resetDesde('tam'); limpiarResumen();
+  resetDesde('marca'); resetDesde('tam'); resetDesde('prod'); limpiarResumen();
 
   var sm=document.getElementById('sel-marca');
   sm.innerHTML='<option value="">-- Selecciona marca --</option>'; sm.disabled=!lin;
@@ -429,19 +435,17 @@ function onMarca(){
   var lin=document.getElementById('sel-lin').value;
   var marca=document.getElementById('sel-marca').value;
   clrE('e-marca'); document.getElementById('sel-marca').classList.remove('fe');
-  resetDesde('tam'); limpiarResumen();
+  resetDesde('tam'); resetDesde('prod'); limpiarResumen();
 
   var st=document.getElementById('sel-tam');
   st.innerHTML='<option value="">-- Selecciona tamaño --</option>'; st.disabled=!marca;
   if(!marca)return;
   var tams=[...new Set(appData.productos.filter(function(p){ return p.categoria===cat&&p.linea===lin&&p.marca===marca; }).map(function(p){ return p.tamanio; }))];
-  // Ordenar por valor numérico si posible
   tams.sort(function(a,b){
     var na=parseFloat(a), nb=parseFloat(b);
     return (!isNaN(na)&&!isNaN(nb))?(na-nb):a.localeCompare(b);
   });
   tams.forEach(function(t){ var o=document.createElement('option'); o.value=t; o.textContent=t; st.appendChild(o); });
-  // Si solo hay uno, seleccionar automáticamente
   if(tams.length===1){ st.value=tams[0]; onTam(); }
 }
 
@@ -451,13 +455,32 @@ function onTam(){
   var marca=document.getElementById('sel-marca').value;
   var tam=document.getElementById('sel-tam').value;
   clrE('e-tam'); document.getElementById('sel-tam').classList.remove('fe');
-  limpiarResumen(); selRef=null;
+  resetDesde('prod'); limpiarResumen();
+
+  var sp=document.getElementById('sel-prod');
+  sp.innerHTML='<option value="">-- Selecciona producto --</option>'; sp.disabled=!tam;
   if(!tam)return;
 
-  // Encontrar el producto exacto
-  var prod=appData.productos.find(function(p){
+  var prods=appData.productos.filter(function(p){
     return p.categoria===cat&&p.linea===lin&&p.marca===marca&&p.tamanio===tam;
   });
+  prods.forEach(function(p){
+    var o=document.createElement('option');
+    o.value=p.cod;
+    o.textContent=p.producto;
+    sp.appendChild(o);
+  });
+  // Si solo hay uno, seleccionar automáticamente
+  if(prods.length===1){ sp.value=prods[0].cod; onProd(); }
+}
+
+function onProd(){
+  var cod=document.getElementById('sel-prod').value;
+  clrE('e-prod'); document.getElementById('sel-prod').classList.remove('fe');
+  limpiarResumen(); selRef=null;
+  if(!cod)return;
+
+  var prod=appData.productos.find(function(p){ return p.cod===cod; });
   if(prod){
     selRef=prod; clrE('e-ref');
     document.getElementById('prod-cod').textContent=prod.cod;
@@ -468,12 +491,12 @@ function onTam(){
 
 function resetDesde(campo){
   var cfg={
-    'lin': {id:'sel-lin',  ph:'-- Primero selecciona categoría --'},
+    'lin':  {id:'sel-lin',  ph:'-- Primero selecciona categoría --'},
     'marca':{id:'sel-marca',ph:'-- Primero selecciona línea --'},
-    'tam': {id:'sel-tam',  ph:'-- Primero selecciona marca --'}
+    'tam':  {id:'sel-tam',  ph:'-- Primero selecciona marca --'},
+    'prod': {id:'sel-prod', ph:'-- Primero selecciona tamaño --'}
   };
-  // Reset desde el campo indicado hacia abajo
-  var orden=['lin','marca','tam'];
+  var orden=['lin','marca','tam','prod'];
   var desde=orden.indexOf(campo);
   if(desde<0)return;
   for(var i=desde;i<orden.length;i++){
@@ -561,6 +584,7 @@ function validar(){
   chk(!!document.getElementById('sel-lin').value,'e-lin','sel-lin');
   chk(!!document.getElementById('sel-marca').value,'e-marca','sel-marca');
   chk(!!document.getElementById('sel-tam').value,'e-tam','sel-tam');
+  chk(!!document.getElementById('sel-prod').value,'e-prod','sel-prod');
   chk(!!selRef,'e-ref',null);
   var c=document.getElementById('inp-caras').value;
   chk(c!==''&&!isNaN(c)&&Number(c)>=0,'e-caras','inp-caras');
