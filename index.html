@@ -560,23 +560,67 @@ fzone.addEventListener('drop',function(e){
 });
 
 // ── CALCULADORA ──────────────────────────────────────────
-var CS={curr:'0',prev:'',op:null,operand:0,fresh:false};
+var CS={curr:'0',prev:'',op:null,operand:0,fresh:false,justEq:false};
 var OPS={'+':'+','-':'−','*':'×','/':'÷','%':'%'};
 function cUpd(){ document.getElementById('ccurr').textContent=CS.curr; document.getElementById('cprev').textContent=CS.prev; }
-function cNum(n){ if(CS.fresh){CS.curr=(n==='.')?'0.':n;CS.fresh=false;}else if(n==='.'&&CS.curr.includes('.'))return;else if(CS.curr==='0'&&n!=='.')CS.curr=n;else if(CS.curr.length<14)CS.curr+=n;cUpd(); }
-function cOp(o){ CS.operand=parseFloat(CS.curr);CS.op=o;CS.prev=CS.curr+' '+OPS[o];CS.fresh=true;cUpd(); }
-function cEq(){
-  if(!CS.op)return;
-  var a=CS.operand,b=parseFloat(CS.curr),r;
-  if(CS.op==='+')r=a+b;else if(CS.op==='-')r=a-b;else if(CS.op==='*')r=a*b;
-  else if(CS.op==='/')r=b!==0?a/b:'Error';else if(CS.op==='%')r=a*b/100;
-  var rs=(typeof r==='number')?(Number.isInteger(r)?r.toString():parseFloat(r.toFixed(8)).toString()):r;
-  CS.prev=CS.operand+' '+OPS[CS.op]+' '+b+' =';CS.curr=rs;CS.op=null;CS.fresh=true;
-  try{navigator.clipboard.writeText(rs);}catch(e){}
+
+function cNum(n){
+  CS.justEq=false;
+  if(CS.fresh){CS.curr=(n==='.')?'0.':n; CS.fresh=false;}
+  else if(n==='.'&&CS.curr.includes('.'))return;
+  else if(CS.curr==='0'&&n!=='.')CS.curr=n;
+  else if(CS.curr.length<14)CS.curr+=n;
   cUpd();
 }
-function cAC(){CS={curr:'0',prev:'',op:null,operand:0,fresh:false};cUpd();}
-function cDel(){if(CS.fresh||CS.curr.length<=1){CS.curr='0';CS.fresh=false;}else CS.curr=CS.curr.slice(0,-1);cUpd();}
+
+function calcular(a, op, b){
+  if(op==='+') return a+b;
+  if(op==='-') return a-b;
+  if(op==='*') return a*b;
+  if(op=='/') return b!==0 ? a/b : 'Error';
+  if(op==='%') return a*b/100;
+  return b;
+}
+
+function fmtNum(r){
+  if(typeof r!=='number') return r;
+  return Number.isInteger(r) ? r.toString() : parseFloat(r.toFixed(8)).toString();
+}
+
+function cOp(o){
+  var b = parseFloat(CS.curr);
+  // Si ya hay operación pendiente y no acaba de presionar =, encadenar
+  if(CS.op && !CS.fresh && !CS.justEq){
+    var r = calcular(CS.operand, CS.op, b);
+    CS.curr = fmtNum(r);
+    CS.operand = parseFloat(CS.curr);
+  } else {
+    CS.operand = b;
+  }
+  CS.op = o;
+  CS.prev = CS.curr + ' ' + OPS[o];
+  CS.fresh = true;
+  CS.justEq = false;
+  cUpd();
+}
+
+function cEq(){
+  if(!CS.op) return;
+  var b = parseFloat(CS.curr);
+  var r = calcular(CS.operand, CS.op, b);
+  var rs = fmtNum(r);
+  CS.prev = CS.operand + ' ' + OPS[CS.op] + ' ' + b + ' =';
+  CS.curr = rs; CS.op = null; CS.fresh = true; CS.justEq = true;
+  try{ navigator.clipboard.writeText(rs); }catch(e){}
+  cUpd();
+}
+
+function cAC(){ CS={curr:'0',prev:'',op:null,operand:0,fresh:false,justEq:false}; cUpd(); }
+function cDel(){
+  if(CS.fresh||CS.curr.length<=1){CS.curr='0';CS.fresh=false;}
+  else CS.curr=CS.curr.slice(0,-1);
+  cUpd();
+}
 
 // ── VALIDACIÓN ────────────────────────────────────────────
 function validar(){
