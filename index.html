@@ -264,7 +264,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <div class="fg">
       <label>Foto del Lineal <span class="req">*</span></label>
       <div class="fzone" id="fzone">
-        <input type="file" id="inp-foto" accept="image/*" capture="environment" onchange="onFoto(this)">
+        <input type="file" id="inp-foto" accept="image/*" onchange="onFoto(this)">
         <div id="fph">
           <div class="ftico">📷</div>
           <div class="ftxt"><strong>Tomar o subir foto</strong>Toca aquí para abrir la cámara o galería</div>
@@ -522,18 +522,26 @@ document.addEventListener('click',function(e){
 function onFoto(input){
   var file=input.files[0]; if(!file)return;
   if(file.size>10*1024*1024){ toast('w','⚠️ Imagen grande','Usa foto de menor resolución (máx 10MB).'); return; }
-  fotoNom=file.name;
+  // Nombre descriptivo: DISTRITO_Nombre_PuntoVenta_YYYY-MM-DD_HH-MM.ext
+  var ext = file.name.split('.').pop() || 'jpg';
+  var ahora = new Date();
+  var fecha = ahora.getFullYear()+'-'+pad(ahora.getMonth()+1)+'-'+pad(ahora.getDate());
+  var hora  = pad(ahora.getHours())+'-'+pad(ahora.getMinutes());
+  var pv    = (document.getElementById('sel-pv').value || 'SinPV').replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_\-]/g,'');
+  var nom   = (selNom || 'SinNombre').replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_\-]/g,'');
+  fotoNom   = DISTRITO+'_'+nom+'_'+pv+'_'+fecha+'_'+hora+'.'+ext;
   var reader=new FileReader();
   reader.onload=function(e){
     fotoB64=e.target.result;
     document.getElementById('fimg').src=fotoB64;
     document.getElementById('fprev').style.display='block';
     document.getElementById('fph').style.display='none';
-    document.getElementById('fname').textContent='📎 '+file.name;
+    document.getElementById('fname').textContent='📎 '+fotoNom;
     clrE('e-foto'); document.getElementById('fzone').classList.remove('fe'); fotoId=null;
   };
   reader.readAsDataURL(file);
 }
+function pad(n){ return n<10?'0'+n:n; }
 function delFoto(e){
   e.stopPropagation(); fotoB64=null; fotoNom=''; fotoId=null;
   document.getElementById('fimg').src='';
