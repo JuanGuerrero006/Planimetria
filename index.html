@@ -69,9 +69,9 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .uprog{height:100%;background:var(--pri-l);border-radius:3px;width:0;transition:width .3s}
 /* CALC */
 .cw{background:#16213E;border-radius:16px;padding:16px;user-select:none}
-.cs{background:rgba(255,255,255,.06);border-radius:10px;padding:12px 16px;margin-bottom:13px;text-align:right;min-height:72px;display:flex;flex-direction:column;justify-content:flex-end}
-.cprev{font-size:12px;color:rgba(255,255,255,.4);min-height:16px;font-family:monospace}
-.ccurr{font-size:30px;font-weight:200;color:#fff;font-family:monospace;word-break:break-all;line-height:1.1}
+.cs{background:rgba(255,255,255,.06);border-radius:10px;padding:14px 16px;margin-bottom:13px;text-align:right;min-height:90px;display:flex;flex-direction:column;justify-content:flex-end}
+.cprev{font-size:16px;color:rgba(255,255,255,.75);min-height:22px;font-family:monospace;word-break:break-all;letter-spacing:.5px;line-height:1.4}
+.ccurr{font-size:36px;font-weight:200;color:#fff;font-family:monospace;word-break:break-all;line-height:1.1;margin-top:4px}
 .cgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
 .cb{padding:0;height:58px;border:none;border-radius:11px;font-size:19px;cursor:pointer;transition:transform .08s;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:center}
 .cb:active{transform:scale(.9)}
@@ -565,8 +565,8 @@ var OPS={'+':'+','-':'\u2212','*':'\u00d7','/':'\u00f7','%':'%'};
 
 function cUpd(){
   document.getElementById('ccurr').textContent = CS.curr;
-  // Línea superior: expresión completa acumulada
-  var mostrar = CS.expr + (CS.fresh ? '' : CS.curr);
+  // Expresión completa en tiempo real: expr acumulada + número que se está escribiendo ahora
+  var mostrar = CS.fresh ? CS.expr : CS.expr + CS.curr;
   document.getElementById('cprev').textContent = mostrar;
 }
 
@@ -576,7 +576,10 @@ function cNum(n){
   else if(n==='.'&&CS.curr.includes('.')) return;
   else if(CS.curr==='0'&&n!=='.') CS.curr=n;
   else if(CS.curr.length<14) CS.curr+=n;
-  cUpd();
+  // Actualizar expresión en tiempo real mientras escribe
+  var mostrar = CS.expr + CS.curr;
+  document.getElementById('cprev').textContent = mostrar;
+  document.getElementById('ccurr').textContent = CS.curr;
 }
 
 function calcular(a, op, b){
