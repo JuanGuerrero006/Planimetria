@@ -335,31 +335,34 @@ function apiGet(params, cb){
   document.head.appendChild(s);
 }
 function apiPost(payload, cb){
-  // Usamos XMLHttpRequest — más compatible con Safari/iOS que fetch con redirect
-  var xhr = new XMLHttpRequest();
-  xhr.open('POST', API_URL, true);
-  xhr.setRequestHeader('Content-Type', 'text/plain');
-  xhr.onload = function(){
+  // fetch con redirect manual — funciona en iOS Safari + Apps Script
+  fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+    // Sin Content-Type header: deja que el browser lo maneje
+    // Apps Script acepta cualquier content-type en el body
+  })
+  .then(function(r){
+    // Apps Script devuelve 302 → seguimos el redirect automáticamente
+    return r.text();
+  })
+  .then(function(txt){
     try {
-      var data = JSON.parse(xhr.responseText);
-      cb(data);
-    } catch(e) {
-      // Apps Script a veces redirige — intentar leer igual
-      try {
-        var texto = xhr.responseText;
-        var inicio = texto.indexOf('{');
-        if (inicio >= 0) {
-          cb(JSON.parse(texto.slice(inicio)));
-        } else {
-          cb({success:false, error:'Respuesta inesperada del servidor'});
-        }
-      } catch(e2) {
-        cb({success:false, error:'Error parseando respuesta: ' + e2.message});
+      // Buscar el JSON en la respuesta (puede venir con HTML wrapper)
+      var ini = txt.indexOf('{');
+      var fin = txt.lastIndexOf('}');
+      if(ini >= 0 && fin > ini){
+        cb(JSON.parse(txt.slice(ini, fin+1)));
+      } else {
+        cb({success:false, error:'Respuesta no reconocida del servidor'});
       }
+    } catch(e){
+      cb({success:false, error:'Error procesando respuesta: '+e.message});
     }
-  };
-  xhr.onerror   = function(){ cb({success:false, error:'Error de red. Verifica tu conexión e intenta de nuevo.'}); };
-  xhr.send(JSON.stringify(payload));
+  })
+  .catch(function(err){
+    cb({success:false, error:'Error de red: '+err.message});
+  });
 }
 
 function cargarDatos(){
@@ -499,23 +502,24 @@ document.addEventListener('click',function(e){
 // ── FOTO ─────────────────────────────────────────────────
 function onFoto(input){
   var file=input.files[0]; if(!file)return;
-  if(file.size>10*1024*1024){ toast('w','⚠️ Imagen grande','Usa foto de menor resolución (máx 10MB).'); return; }
-  // Nombre descriptivo: DISTRITO_Nombre_PuntoVenta_YYYY-MM-DD_HH-MM.ext
-  var ext = file.name.split('.').pop() || 'jpg';
+  if(file.size>200*1024*1024){ toast('w','⚠️ Imagen muy grande','La foto no puede superar 200MB.'); return; }
+  // Nombre descriptivo
+  var ext   = file.name.split('.').pop() || 'jpg';
   var ahora = new Date();
   var fecha = ahora.getFullYear()+'-'+pad(ahora.getMonth()+1)+'-'+pad(ahora.getDate());
   var hora  = pad(ahora.getHours())+'-'+pad(ahora.getMinutes());
   var pv    = (document.getElementById('sel-pv').value || 'SinPV').replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_\-]/g,'');
   var nom   = (selNom || 'SinNombre').replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_\-]/g,'');
   fotoNom   = DISTRITO+'_'+nom+'_'+pv+'_'+fecha+'_'+hora+'.'+ext;
-  var reader=new FileReader();
-  reader.onload=function(e){
-    fotoB64=e.target.result;
-    document.getElementById('fimg').src=fotoB64;
-    document.getElementById('fprev').style.display='block';
-    document.getElementById('fph').style.display='none';
-    document.getElementById('fname').textContent='📎 '+fotoNom;
-    clrE('e-foto'); document.getElementById('fzone').classList.remove('fe'); fotoId=null;
+  // Sin compresión — se envía la imagen original con su máxima calidad
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    fotoB64 = ev.target.result;
+    document.getElementById('fimg').src = fotoB64;
+    document.getElementById('fprev').style.display = 'block';
+    document.getElementById('fph').style.display   = 'none';
+    document.getElementById('fname').textContent   = '📎 ' + fotoNom;
+    clrE('e-foto'); document.getElementById('fzone').classList.remove('fe'); fotoId = null;
   };
   reader.readAsDataURL(file);
 }
