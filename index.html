@@ -384,8 +384,15 @@ function pickNom(n){
   });
   var sp=document.getElementById('sel-pv');
   sp.innerHTML='<option value="">-- Selecciona tu punto de venta --</option>';
-  regs.forEach(function(r){ var o=document.createElement('option'); o.value=r.puntoVenta; o.textContent=r.puntoVenta; sp.appendChild(o); });
-  if(regs.length===1) sp.value=regs[0].puntoVenta;
+  var pvVistos=new Set();
+  regs.forEach(function(r){
+    var pv=r.puntoVenta.trim();
+    if(!pvVistos.has(pv)){
+      pvVistos.add(pv);
+      var o=document.createElement('option'); o.value=pv; o.textContent=pv; sp.appendChild(o);
+    }
+  });
+  if(pvVistos.size===1) sp.value=regs[0].puntoVenta;
 }
 function resetNomF(){
   document.getElementById('sel-zona').innerHTML='<option value="">-- Selecciona primero tu nombre --</option>';
