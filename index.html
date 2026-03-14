@@ -231,19 +231,19 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <div class="hint">Registra el <strong>total de la marca completa</strong> en el lineal — sin diferenciar gramajes ni productos.</div>
     <div class="fg">
       <label>Caras en el Lineal <span class="req">*</span></label>
-      <input type="number" id="inp-caras" placeholder="Ej: 3" min="0" step="1">
+      <input type="number" id="inp-caras" placeholder="Ej: 3" min="0" step="1" pattern="\d*" inputmode="numeric">
       <div style="font-size:11px;color:var(--muted);margin-top:4px">Total de caras de toda la marca en el lineal</div>
       <div class="em" id="e-caras">⚠️ Ingresa la cantidad de caras</div>
     </div>
     <div class="fg">
       <label>Centímetros en el Lineal <span class="req">*</span></label>
-      <input type="number" id="inp-cm" placeholder="Ej: 45.5" min="0" step="0.1">
+      <input type="text" id="inp-cm" placeholder="Ej: 45,5" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?">
       <div style="font-size:11px;color:var(--muted);margin-top:4px">Total de cm lineales ocupados por toda la marca</div>
       <div class="em" id="e-cm">⚠️ Ingresa los centímetros</div>
     </div>
     <div class="fg">
       <label>Cantidad Total de Unidades <span class="req">*</span></label>
-      <input type="number" id="inp-cant" placeholder="Ej: 24" min="0" step="1">
+      <input type="number" id="inp-cant" placeholder="Ej: 24" min="0" step="1" pattern="\d*" inputmode="numeric">
       <div style="font-size:11px;color:var(--muted);margin-top:4px">Total de unidades disponibles de toda la marca (todos los productos y gramajes)</div>
       <div class="em" id="e-cant">⚠️ Ingresa la cantidad total</div>
     </div>
@@ -616,8 +616,8 @@ function validar(){
   chk(c!==''&&!isNaN(c)&&Number(c)>=0,'e-caras','inp-caras');
   var q=document.getElementById('inp-cant').value;
   chk(q!==''&&!isNaN(q)&&Number(q)>=0,'e-cant','inp-cant');
-  var m=document.getElementById('inp-cm').value;
-  chk(m!==''&&!isNaN(m)&&Number(m)>=0,'e-cm','inp-cm');
+  var m=document.getElementById('inp-cm').value.replace(',','.');
+  chk(m!==''&&!isNaN(parseFloat(m))&&parseFloat(m)>=0,'e-cm','inp-cm');
   if(!fotoB64){document.getElementById('e-foto').classList.add('on');document.getElementById('fzone').classList.add('fe');ok=false;}
   else{document.getElementById('e-foto').classList.remove('on');document.getElementById('fzone').classList.remove('fe');}
   return ok;
@@ -648,7 +648,7 @@ function enviar(nuevo){
         marca:         selRef.marca,
         caras:         document.getElementById('inp-caras').value,
         cantidadTotal: document.getElementById('inp-cant').value,
-        cmLineal:      document.getElementById('inp-cm').value,
+        cmLineal:      document.getElementById('inp-cm').value.replace(',','.')  ,
         observaciones: document.getElementById('inp-obs').value.trim(),
         fotoId:        fotoId
       }
