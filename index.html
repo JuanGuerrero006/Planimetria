@@ -335,12 +335,10 @@ function apiGet(params, cb){
   document.head.appendChild(s);
 }
 function apiPost(payload, cb){
-  // fetch con redirect manual — funciona en iOS Safari + Apps Script
   fetch(API_URL, {
     method: 'POST',
+    headers: {'Content-Type': 'text/plain'},
     body: JSON.stringify(payload)
-    // Sin Content-Type header: deja que el browser lo maneje
-    // Apps Script acepta cualquier content-type en el body
   })
   .then(function(r){
     // Apps Script devuelve 302 → seguimos el redirect automáticamente
@@ -632,7 +630,6 @@ function validar(){
   chk(!!document.getElementById('inp-suc').value.trim(),'e-suc','inp-suc');
   chk(!!document.getElementById('sel-cat').value,'e-cat','sel-cat');
   chk(!!document.getElementById('sel-lin').value,'e-lin','sel-lin');
-  chk(!!document.getElementById('sel-marca').value,'e-marca','sel-marca');
   chk(!!document.getElementById('sel-marca').value,'e-marca','sel-marca');
   chk(!!selRef,'e-ref',null);
   var c=document.getElementById('inp-caras').value;
