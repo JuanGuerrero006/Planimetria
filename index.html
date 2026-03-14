@@ -281,10 +281,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   <div class="card">
     <div class="brow">
       <button class="btn bcancel" id="bc" onclick="cancelar()">✕ Cancelar</button>
-      <button class="btn bsend"   id="bs" onclick="enviar(false)">✓ Enviar</button>
-    </div>
-    <div class="brow" style="margin-top:10px">
-      <button class="btn bnew" id="bn" onclick="enviar(true)">↩ Enviar y Registrar de Nuevo</button>
+      <button class="btn bnew"    id="bn" onclick="enviar(true)">✓ Enviar y Registrar de Nuevo</button>
     </div>
     <p style="font-size:11px;color:var(--muted);margin-top:12px;text-align:center">
       Los campos con <span style="color:var(--err);font-weight:700">*</span> son obligatorios
@@ -339,9 +336,31 @@ function apiGet(params, cb){
   document.head.appendChild(s);
 }
 function apiPost(payload, cb){
-  fetch(API_URL,{ method:'POST', redirect:'follow', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload) })
-  .then(function(r){ return r.json(); }).then(function(d){ cb(d); })
-  .catch(function(err){ cb({success:false,error:'Error de red: '+err.message}); });
+  // Usamos XMLHttpRequest — más compatible con Safari/iOS que fetch con redirect
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', API_URL, true);
+  xhr.setRequestHeader('Content-Type', 'text/plain');
+  xhr.onload = function(){
+    try {
+      var data = JSON.parse(xhr.responseText);
+      cb(data);
+    } catch(e) {
+      // Apps Script a veces redirige — intentar leer igual
+      try {
+        var texto = xhr.responseText;
+        var inicio = texto.indexOf('{');
+        if (inicio >= 0) {
+          cb(JSON.parse(texto.slice(inicio)));
+        } else {
+          cb({success:false, error:'Respuesta inesperada del servidor'});
+        }
+      } catch(e2) {
+        cb({success:false, error:'Error parseando respuesta: ' + e2.message});
+      }
+    }
+  };
+  xhr.onerror   = function(){ cb({success:false, error:'Error de red. Verifica tu conexión e intenta de nuevo.'}); };
+  xhr.send(JSON.stringify(payload));
 }
 
 function cargarDatos(){
@@ -679,7 +698,7 @@ function resetForm(keepUser){
 
 // ── HELPERS ───────────────────────────────────────────────
 function ov(show,txt){ document.getElementById('ov').classList.toggle('hid',!show); if(txt)document.getElementById('ovtxt').textContent=txt; }
-function setBtns(d){ ['bc','bs','bn'].forEach(function(i){ document.getElementById(i).disabled=d; }); }
+function setBtns(d){ ['bc','bn'].forEach(function(i){ document.getElementById(i).disabled=d; }); }
 function clrE(id){ document.getElementById(id).classList.remove('on'); }
 var tTimer;
 function toast(type,title,msg){
