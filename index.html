@@ -341,22 +341,21 @@ function apiPost(payload, cb){
     headers: {'Content-Type': 'text/plain'},
     body: JSON.stringify(payload)
   })
-  .then(function(r){
-    // Apps Script devuelve 302 → seguimos el redirect automáticamente
-    return r.text();
-  })
+  .then(function(r){ return r.text(); })
   .then(function(txt){
     try {
-      // Buscar el JSON en la respuesta (puede venir con HTML wrapper)
+      // Extraer JSON correctamente con balance de llaves
       var ini = txt.indexOf('{');
-      var fin = txt.lastIndexOf('}');
-      if(ini >= 0 && fin > ini){
-        cb(JSON.parse(txt.slice(ini, fin+1)));
-      } else {
-        cb({success:false, error:'Respuesta no reconocida del servidor'});
+      if(ini < 0){ cb({success:false, error:'Sin respuesta del servidor'}); return; }
+      var depth=0, fin=-1;
+      for(var i=ini; i<txt.length; i++){
+        if(txt[i]==='{') depth++;
+        else if(txt[i]==='}'){ depth--; if(depth===0){ fin=i; break; } }
       }
+      if(fin < 0){ cb({success:false, error:'Respuesta incompleta del servidor'}); return; }
+      cb(JSON.parse(txt.slice(ini, fin+1)));
     } catch(e){
-      cb({success:false, error:'Error procesando respuesta: '+e.message});
+      cb({success:false, error:'Error procesando respuesta: '+e.message+' | '+txt.slice(0,100)});
     }
   })
   .catch(function(err){
