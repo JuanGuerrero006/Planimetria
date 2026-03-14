@@ -237,7 +237,8 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     </div>
     <div class="fg">
       <label>Centímetros en el Lineal <span class="req">*</span></label>
-      <input type="text" id="inp-cm" placeholder="Ej: 45,5" inputmode="decimal" pattern="[0-9]+([.,][0-9]+)?">
+      <input type="text" id="inp-cm" placeholder="Ej: 45,5" inputmode="decimal" pattern="[0-9]+(,[0-9]+)?"
+        oninput="this.value=this.value.replace('.',',').replace(/[^0-9,]/g,'').replace(/(,.*),/g,'$1')">
       <div style="font-size:11px;color:var(--muted);margin-top:4px">Total de cm lineales ocupados por toda la marca</div>
       <div class="em" id="e-cm">⚠️ Ingresa los centímetros</div>
     </div>
@@ -616,8 +617,9 @@ function validar(){
   chk(c!==''&&!isNaN(c)&&Number(c)>=0,'e-caras','inp-caras');
   var q=document.getElementById('inp-cant').value;
   chk(q!==''&&!isNaN(q)&&Number(q)>=0,'e-cant','inp-cant');
-  var m=document.getElementById('inp-cm').value.replace(',','.');
-  chk(m!==''&&!isNaN(parseFloat(m))&&parseFloat(m)>=0,'e-cm','inp-cm');
+  var cmRaw=document.getElementById('inp-cm').value.trim();
+  var cmVal=parseFloat(cmRaw.replace(',','.'));
+  chk(cmRaw!==''&&!isNaN(cmVal)&&cmVal>=0,'e-cm','inp-cm'); // coma→punto internamente
   if(!fotoB64){document.getElementById('e-foto').classList.add('on');document.getElementById('fzone').classList.add('fe');ok=false;}
   else{document.getElementById('e-foto').classList.remove('on');document.getElementById('fzone').classList.remove('fe');}
   return ok;
