@@ -132,7 +132,10 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 <div class="hdr">
   <div style="font-size:22px">📋</div>
   <h1>Registro de Planimetría</h1>
-  <div class="chip" id="chip-dist">📍 Cargando...</div>
+  <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-top:6px">
+    <div class="chip" id="chip-dist">📍 Cargando...</div>
+    <button onclick="recargarDatos()" style="background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);border-radius:20px;color:#fff;font-size:13px;font-weight:700;padding:3px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent" title="Recargar datos">🔄</button>
+  </div>
 </div>
 
 <div class="wrap">
@@ -331,14 +334,41 @@ function guardarConfig(){
 function resetConfig(){
   if(confirm('¿Cambiar la URL del servidor?')){ localStorage.removeItem('planimetria_api_url'); location.reload(); }
 }
+function recargarDatos(){
+  if(!API_URL){ toast('w','⚠️ Sin URL','Primero configura la URL del servidor.'); return; }
+  _cargandoIntentos=0;
+  cargarDatos();
+}
 
 // ── API ──────────────────────────────────────────────────
 function apiGet(params, cb){
   var cbName='cb_'+Date.now();
   var url=API_URL+'?'+params+'&callback='+cbName+'&t='+Date.now();
-  window[cbName]=function(data){ delete window[cbName]; var s=document.getElementById('s_'+cbName); if(s)s.remove(); cb(data); };
+  var done=false;
+  // Timeout de 15s — si no responde, reintenta
+  var timer=setTimeout(function(){
+    if(done) return;
+    done=true;
+    delete window[cbName];
+    var s=document.getElementById('s_'+cbName); if(s)s.remove();
+    cb({success:false,error:'Sin respuesta del servidor (timeout)'});
+  }, 15000);
+  window[cbName]=function(data){
+    if(done) return;
+    done=true;
+    clearTimeout(timer);
+    delete window[cbName];
+    var s=document.getElementById('s_'+cbName); if(s)s.remove();
+    cb(data);
+  };
   var s=document.createElement('script'); s.id='s_'+cbName; s.src=url;
-  s.onerror=function(){ delete window[cbName]; s.remove(); cb({success:false,error:'Error de conexión. Verifica la URL del servidor.'}); };
+  s.onerror=function(){
+    if(done) return;
+    done=true;
+    clearTimeout(timer);
+    delete window[cbName]; s.remove();
+    cb({success:false,error:'Error de conexión.'});
+  };
   document.head.appendChild(s);
 }
 function apiPost(payload, cb){
@@ -350,7 +380,6 @@ function apiPost(payload, cb){
   .then(function(r){ return r.text(); })
   .then(function(txt){
     try {
-      // Extraer JSON correctamente con balance de llaves
       var ini = txt.indexOf('{');
       if(ini < 0){ cb({success:false, error:'Sin respuesta del servidor'}); return; }
       var depth=0, fin=-1;
@@ -369,13 +398,26 @@ function apiPost(payload, cb){
   });
 }
 
+var _cargandoIntentos = 0;
 function cargarDatos(){
   ov(true,'Cargando datos del distrito...');
+  _cargandoIntentos++;
   apiGet('action=getDatos&d='+encodeURIComponent(DISTRITO), function(data){
     ov(false);
-    if(!data||!data.success){ toast('e','❌ Error',(data&&data.error)||'No se pudo conectar.'); return; }
+    if(!data||!data.success){
+      // Reintento automático hasta 3 veces
+      if(_cargandoIntentos < 3){
+        toast('w','⏳ Reintentando...','Conectando con el servidor...');
+        setTimeout(cargarDatos, 2000);
+      } else {
+        _cargandoIntentos = 0;
+        toast('e','❌ Error de conexión',(data&&data.error)||'No se pudo conectar. Toca 🔄 para reintentar.');
+      }
+      return;
+    }
+    _cargandoIntentos = 0;
     appData=data; pobCats();
-    toast('s','✅ Conectado','Datos de '+DISTRITO+' cargados.');
+    toast('s','✅ Listo','Datos cargados correctamente.');
   });
 }
 
